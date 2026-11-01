@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class CenaceAPIError(Exception):
-    """Excepción para errores de la API de CENACE."""
+    """Exception raised for errors during CENACE API interaction."""
     pass
 
 
@@ -62,7 +62,7 @@ class CenaceClient:
         end: date,
         force_reload: bool = False,
     ) -> Dict:
-        """Descarga o recupera de caché local un bloque de fechas."""
+        """Download or retrieve from local cache a date window."""
         cache_path = self._get_cache_path(process, nodes, start, end)
 
         if not force_reload and cache_path.exists():
@@ -70,10 +70,10 @@ class CenaceClient:
                 with open(cache_path, "r", encoding="utf-8") as f:
                     cached_data = json.load(f)
                 if cached_data.get("status") == "OK" and "Resultados" in cached_data:
-                    logger.debug(f"Caché hit: {cache_path.name}")
+                    logger.debug(f"Cache hit: {cache_path.name}")
                     return cached_data
             except Exception as e:
-                logger.warning(f"Error leyendo caché {cache_path}: {e}")
+                logger.warning(f"Error reading cache {cache_path}: {e}")
 
         url = self._build_url(process, nodes, start, end)
         last_exception = None
@@ -82,7 +82,7 @@ class CenaceClient:
             try:
                 if self.rate_limit_delay > 0:
                     time.sleep(self.rate_limit_delay)
-                logger.info(f"[{process}] Petición {start} a {end} (Intento {attempt}/{self.max_retries})")
+                logger.info(f"[{process}] Request {start} to {end} (Attempt {attempt}/{self.max_retries})")
 
                 response = self.session.get(url, timeout=self.timeout)
                 code = response.status_code
@@ -95,35 +95,35 @@ class CenaceClient:
                             json.dump(payload, f, ensure_ascii=False)
                         return payload
                     elif status == "NO_DATA":
-                        logger.warning(f"CENACE reportó NO_DATA para {start} a {end}")
+                        logger.warning(f"CENACE returned NO_DATA for {start} to {end}")
                         return payload
                     else:
-                        raise CenaceAPIError(f"Estado no exitoso en respuesta: {status}")
+                        raise CenaceAPIError(f"Unsuccessful status in response: {status}")
 
                 elif code == 204:
-                    logger.warning(f"HTTP 204 No Content para periodo {start} a {end}")
+                    logger.warning(f"HTTP 204 No Content for period {start} to {end}")
                     return {"status": "NO_CONTENT", "Resultados": []}
 
                 elif code == 401:
-                    # Error definitivo de autenticación: detener sin reintentar
-                    raise CenaceAPIError(f"HTTP 401 No Autorizado al consultar {url}")
+                    # Non-recoverable authorization error: fail fast without retry
+                    raise CenaceAPIError(f"HTTP 401 Unauthorized for URL: {url}")
 
                 elif code == 404:
-                    # Recurso no encontrado: detener sin reintentar
-                    raise CenaceAPIError(f"HTTP 404 No Encontrado al consultar {url}")
+                    # Resource not found: fail fast without retry
+                    raise CenaceAPIError(f"HTTP 404 Not Found for URL: {url}")
 
                 else:
-                    logger.warning(f"HTTP {code} recibido en intento {attempt}.")
+                    logger.warning(f"HTTP {code} received on attempt {attempt}.")
 
             except requests.RequestException as exc:
                 last_exception = exc
                 if attempt < self.max_retries:
                     wait_time = self.backoff_factor ** attempt
-                    logger.warning(f"Falla de conexión ({exc}). Reintentando en {wait_time:.1f}s...")
+                    logger.warning(f"Connection failure ({exc}). Retrying in {wait_time:.1f}s...")
                     time.sleep(wait_time)
 
         raise CenaceAPIError(
-            f"Falla tras {self.max_retries} intentos para periodo {start} a {end}: {last_exception}"
+            f"Failed after {self.max_retries} attempts for period {start} to {end}: {last_exception}"
         )
 
     def fetch_all(
@@ -133,20 +133,20 @@ class CenaceClient:
         windows: List[Tuple[date, date]],
         force_reload: bool = False,
     ) -> List[Path]:
-        """Descarga todas las ventanas y devuelve las rutas de archivos guardados en disco."""
+        """Download all windows and return the saved cache file paths."""
         saved_paths = []
         total = len(windows)
-        logger.info(f"Descargando {total} ventanas para proceso {process}...")
+        logger.info(f"Downloading {total} windows for process {process}...")
 
         for idx, (start, end) in enumerate(windows, 1):
-            logger.info(f"Progreso [{process}]: {idx}/{total} ({start} a {end})")
+            logger.info(f"Progress [{process}]: {idx}/{total} ({start} to {end})")
             payload = self.fetch_window(process, nodes, start, end, force_reload=force_reload)
             cache_path = self._get_cache_path(process, nodes, start, end)
 
             if payload.get("status") == "OK" and cache_path.exists():
                 saved_paths.append(cache_path)
             else:
-                status = payload.get("status") if isinstance(payload, dict) else "SIN_ARCHIVO"
-                logger.warning(f"Ventana [{start} a {end}] sin archivo guardado (status: {status}).")
+                status = payload.get("status") if isinstance(payload, dict) else "NO_FILE"
+                logger.warning(f"Window [{start} to {end}] has no saved file (status: {status}).")
 
         return saved_paths
