@@ -4,7 +4,7 @@ import logging
 import time
 from datetime import date
 from pathlib import Path
-from typing import Dict, List, Tuple, Union
+from typing import Dict, List, Tuple
 import requests
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class CenaceClient:
         self,
         base_url: str = "https://ws01.cenace.gob.mx:8082/SWPML/SIM",
         system: str = "SIN",
-        raw_data_dir: Union[str, Path] = "data/raw",
+        raw_data_dir: str | Path = "data/raw",
         timeout_seconds: int = 35,
         max_retries: int = 3,
         backoff_factor: float = 2.0,
@@ -143,7 +143,7 @@ class CenaceClient:
             payload = self.fetch_window(process, nodes, start, end, force_reload=force_reload)
             cache_path = self._get_cache_path(process, nodes, start, end)
 
-            if cache_path.exists():
+            if payload.get("status") == "OK" and cache_path.exists():
                 saved_paths.append(cache_path)
             else:
                 status = payload.get("status") if isinstance(payload, dict) else "SIN_ARCHIVO"
