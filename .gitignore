@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+.~lock.*#
+
+logs/
+*.log
+
+data/raw/
+data/interim/
+data/processed/
+
+.ipynb_checkpoints/
