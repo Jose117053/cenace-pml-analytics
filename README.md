@@ -4,6 +4,8 @@ A data science pipeline for **Day-Ahead Market (MDA) electricity price forecasti
 
 The project covers data extraction, exploratory analysis, forecasting, model evaluation, and retrospective anomaly detection.
 
+> **Dataset Included:** The consolidated and audited dataset is already provided at `data/interim/pml_mda.parquet` (118,152 hourly records). If you wish to test re-downloading the entire historical dataset from scratch via CENACE's public API, execute the extraction script in the terminal (`python scripts/run_extraction.py`). Otherwise, this download step is optional and you can run the notebooks directly, either starting with `notebooks/01_test_extraction.ipynb` (a quick verification of API integration and data schema) or proceeding directly to `notebooks/02_exploratory_data_analysis.ipynb`.
+
 ## 1. Quick Start — Docker
 
 **Requirement:** Docker Desktop (Windows/macOS) or Docker Engine (Linux).
@@ -62,9 +64,11 @@ jupyter lab
 
 Notebooks are located in `notebooks/`.
 
+> **Workflow Tip:** Because the audited dataset is already bundled (`data/interim/pml_mda.parquet`), you can run Notebook `01` to inspect API integration and schema validation in seconds, or proceed directly to Notebook `02` for exploratory analysis. Re-downloading the entire historical dataset from scratch is handled separately via `python scripts/run_extraction.py`.
+
 | Notebook | Description |
 |---|---|
-| `01_test_extraction.ipynb` | CENACE API integration, extraction inspection, and data validation |
+| `01_test_extraction.ipynb` | CENACE API integration test, response parsing inspection, and schema validation |
 | `02_exploratory_data_analysis.ipynb` | Training-data exploration, temporal patterns, and relationships across nodes |
 | `03_sarimax_forecasting.ipynb` | Seasonal forecasting with SARIMAX |
 | `04_xgboost_forecasting.ipynb` | Global multi-node XGBoost forecasting |
@@ -85,19 +89,16 @@ Notebooks are located in `notebooks/`.
 - **Coverage:** January 1, 2024 – June 30, 2025.
 - **Dataset:** `data/interim/pml_mda.parquet` contains 118,152 hourly node-price records across the 9 nodes.
 - **Units:** Prices and price components are expressed in MXN/MWh.
-- **Presentation:** See `docs/presentation.pdf` for architecture, results, and the proposed productionization plan.
+- **Presentation:** See [`docs/Presentacion.pdf`](docs/Presentacion.pdf) for architecture, results, and the proposed productionization plan.
 
 ### Nodes
 
 `06AEO-115`, `06AHM-400`, `06FRO-115`, `06GRA-115`, `06MON-115`, `06MON-230`, `06RGS-115`, `06TKS-115`, and `06XOC-115`.
 
-### Regenerating the Dataset
-
+### Regenerating the Dataset (Optional)
 
 ```bash
 python scripts/run_extraction.py
 ```
 
-The pipeline downloads raw JSON responses, converts them into a structured hourly table, and saves the consolidated Parquet dataset.
-
-The included Parquet file allows the analysis notebooks to run without downloading the historical data again.
+The pipeline downloads raw JSON responses from the CENACE API, converts them into a structured hourly table, and saves the consolidated Parquet dataset. This step is optional since `data/interim/pml_mda.parquet` is already bundled.
