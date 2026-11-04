@@ -8,7 +8,8 @@ logs/
 *.log
 
 data/raw/
-data/interim/
+data/interim/*
+!data/interim/pml_mda.parquet
 data/processed/
 
 .ipynb_checkpoints/
